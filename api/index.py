@@ -32,5 +32,5 @@ def handle_link(m):
     else:
         bot.reply_to(m, "Please send a valid t.me link.")
 
-def handler(request):
-    return app(request)
+# Remove the 'def handler' part and just use this:
+app = app
