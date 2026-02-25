@@ -45,6 +45,10 @@ def handle(m):
         except:
             bot.reply_to(m, "❌ Connection error.")
 
-# THIS IS THE PART THAT FIXES THE INVOCATION ERROR
+# ... all your bot handlers above ...
+
+# Define both to ensure Vercel finds it
+app = app
+
 def handler(request):
     return app(request)
