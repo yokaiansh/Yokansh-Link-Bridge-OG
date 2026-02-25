@@ -52,5 +52,10 @@ def handle(m):
     else:
         bot.reply_to(m, "Please send a valid Telegram link!")
 
-def handler(request):
-    return app(request)
+# Keep all your bot handlers above this...
+
+# Use this exact name for Vercel's Python runtime
+app = app
+
+# If you still get the error, delete the 'def handler(request)' 
+# part entirely and just leave 'app = app'
