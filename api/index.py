@@ -21,7 +21,6 @@ def handle(m):
         except Exception as e:
             bot.reply_to(m, f"❌ System Error: {str(e)}")
 
-# ... (rest of your bot code above)
-
-# This line tells Vercel exactly where the Flask entrypoint is
-app = app
+# Replace 'app = app' with this function:
+def handler(request):
+    return app(request)
