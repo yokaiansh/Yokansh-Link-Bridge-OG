@@ -1,11 +1,20 @@
-from flask import Flask, request
+from flask import Flask, request, make_response
 import telebot
 import base64
 import requests
 import os
+import time
 
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"), threaded=False)
 app = Flask(__name__)
+
+# This part kills the cache!
+@app.after_request
+def add_header(r):
+    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    r.headers["Pragma"] = "no-cache"
+    r.headers["Expires"] = "0"
+    return r
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -16,21 +25,32 @@ def webhook():
         return 'OK', 200
     return 'Forbidden', 403
 
-@bot.message_handler(commands=['start'])
-def start(m):
-    bot.reply_to(m, "Send a Telegram link to secure it!")
-
 @bot.message_handler(func=lambda m: True)
-def handle_link(m):
+def handle(m):
     link = m.text
     if "t.me" in link:
+        # 1. Base64 encode the destination
         enc = base64.b64encode(link.encode()).decode()
-        dest = f"{os.getenv('VERCEL_URL')}?target={enc}"
-        api_url = f"https://arolinks.com/api?api={os.getenv('AROLINK_API')}&url={dest}"
-        res = requests.get(api_url).json()
-        bot.reply_to(m, f"✅ Secured Arolink:\n{res['shortenedUrl']}")
+        
+        # 2. Add a UNIQUE timestamp to bypass cache
+        # This makes every link look different to the browser
+        v_token = int(time.time())
+        bridge_url = f"https://{os.getenv('VERCEL_URL')}?target={enc}&v={v_token}"
+        
+        # 3. Call Arolink API
+        api_key = os.getenv("AROLINK_API")
+        api_url = f"https://arolinks.com/api?api={api_key}&url={bridge_url}"
+        
+        try:
+            res = requests.get(api_url).json()
+            if res.get("status") == "success":
+                bot.reply_to(m, f"✅ **Secured Multi-Step Link:**\n\n`{res['shortenedUrl']}`")
+            else:
+                bot.reply_to(m, "❌ Arolink API Error.")
+        except Exception as e:
+            bot.reply_to(m, f"❌ System Error: {str(e)}")
     else:
-        bot.reply_to(m, "Please send a valid t.me link.")
+        bot.reply_to(m, "Please send a valid Telegram link!")
 
-# Remove the 'def handler' part and just use this:
-app = app
+def handler(request):
+    return app(request)
