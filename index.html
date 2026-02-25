@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Redirect</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 30px; border-radius: 15px; text-align: center; border: 1px solid #334155; width: 300px; }
+        .btn { display: block; background: #3b82f6; color: white; padding: 12px; border-radius: 8px; text-decoration: none; margin-top: 20px; font-weight: bold; border:none; width: 100%; cursor: pointer;}
+        .btn:disabled { background: #334155; opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h3>Verifying Session...</h3>
+        <p>Your content is ready. Please wait for the security check.</p>
+        <button id="btn" class="btn" disabled>Wait (<span id="sec">5</span>s)</button>
+    </div>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const encodedTarget = params.get('target'); 
+        let s = 5;
+        const btn = document.getElementById('btn');
+        const sec = document.getElementById('sec');
+
+        const timer = setInterval(() => {
+            s--;
+            sec.innerText = s;
+            if (s <= 0) {
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.innerText = "Join Channel Now";
+            }
+        }, 1000);
+
+        btn.onclick = () => {
+            if(encodedTarget) {
+                // Decodes the base64 link so bots can't easily scrape it
+                window.location.href = atob(encodedTarget);
+            } else {
+                alert("Link Error! Please try again.");
+            }
+        };
+    </script>
+</body>
+</html>
