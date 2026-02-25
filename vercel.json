@@ -1,12 +1,11 @@
 {
+  "version": 2,
   "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
-    }
+    { "src": "api/index.py", "use": "@vercel/python" },
+    { "src": "index.html", "use": "@vercel/static" }
   ],
   "rewrites": [
-    { "source": "/webhook", "destination": "/api/index.py" },
+    { "source": "/webhook", "destination": "api/index.py" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
