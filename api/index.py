@@ -20,3 +20,8 @@ def handle(m):
                 bot.reply_to(m, f"❌ Arolink Error: {res.get('message')}")
         except Exception as e:
             bot.reply_to(m, f"❌ System Error: {str(e)}")
+
+# ... (rest of your bot code above)
+
+# This line tells Vercel exactly where the Flask entrypoint is
+app = app
