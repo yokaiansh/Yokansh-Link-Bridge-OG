@@ -7,10 +7,10 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-# Load variables safely
+# --- CONFIGURATION ---
 TOKEN = os.getenv("BOT_TOKEN")
 AROLINK_KEY = os.getenv("AROLINK_API")
-# Use a fallback if VERCEL_URL is missing
+# Replace with your actual Vercel domain if the env variable isn't set
 DOMAIN = os.getenv("VERCEL_URL", "yokansh-link-bridge-og.vercel.app").replace("https://", "").replace("http://", "").strip("/")
 
 bot = telebot.TeleBot(TOKEN, threaded=False)
@@ -29,22 +29,33 @@ def handle(m):
     link = m.text.strip()
     if "t.me" in link:
         try:
-            # The line that was likely crashing (missing base64/time)
-            enc = base64.b64encode(link.encode()).decode()
-            v_token = int(time.time())
+            # STEP 1: Create the Vercel Bridge URL
+            # We encode the target link so it's safe in the URL
+            enc_target = base64.b64encode(link.encode()).decode()
+            bridge_url = f"https://{DOMAIN}/?target={enc_target}"
             
-            bridge_url = f"https://{DOMAIN}/?target={enc}&v={v_token}"
+            # STEP 2: Shorten the Bridge URL via Arolinks
+            # This ensures Arolinks is the 'entry point' for the user
             api_url = f"https://arolinks.com/api?api={AROLINK_KEY}&url={bridge_url}"
             
-            res = requests.get(api_url).json()
-            if res.get("status") == "success":
-                bot.reply_to(m, f"✅ **Secured Link:**\n\n{res['shortenedUrl']}")
+            response = requests.get(api_url).json()
+            
+            if response.get("status") == "success":
+                short_url = response.get("shortenedUrl")
+                msg = (
+                    "🛡️ **Security Gateway Active**\n\n"
+                    "Your link has been processed through our secure tunnel. "
+                    "Click below to begin verification:\n\n"
+                    f"🔗 {short_url}"
+                )
+                bot.reply_to(m, msg, parse_mode="Markdown")
             else:
-                bot.reply_to(m, f"❌ API Error: {res.get('message')}")
+                bot.reply_to(m, "❌ API Error: Could not generate short link.")
+                
         except Exception as e:
             bot.reply_to(m, f"❌ System Error: {str(e)}")
     else:
-        bot.reply_to(m, "Please send a valid t.me link.")
+        bot.reply_to(m, "👋 Send me a Telegram (t.me) link to secure it!")
 
-# Final export for Vercel
+# Vercel Entry Point
 app = app
