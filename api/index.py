@@ -45,7 +45,8 @@ def handle(m):
         except:
             bot.reply_to(m, "❌ Connection error.")
 
-# ... all your bot handlers above ...
-
-# Define both to ensure Vercel finds it
+# At the bottom of api/index.py
 app = app
+
+def handler(request):
+    return app(request)
