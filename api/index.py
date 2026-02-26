@@ -49,6 +49,3 @@ def handle(m):
 
 # Define both to ensure Vercel finds it
 app = app
-
-def handler(request):
-    return app(request)
