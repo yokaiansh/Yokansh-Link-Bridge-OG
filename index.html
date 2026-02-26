@@ -60,7 +60,8 @@
     const target = params.get('target');
     const ts = params.get('ts');
     const signature = params.get('s');
-    const SECRET_KEY = "PRO_GLASS_BRIDGE_2026"; 
+    // 'ak' is your Arolinks API Key passed from the Bot
+    const arolinkApiKey = params.get('ak'); 
 
     const colors = [
         {n: 'Red', h: '#ef4444'}, {n: 'Blue', h: '#3b82f6'},
@@ -84,7 +85,6 @@
         }, 1000);
     }
 
-    // Phase 1 -> Phase 2
     startTimer('t1', 5, () => {
         document.getElementById('step1').classList.remove('active');
         document.getElementById('step2').classList.add('active');
@@ -109,11 +109,19 @@
                     document.getElementById('step3').classList.add('active');
                     startTimer('t2', 5, () => {
                         const finalLink = atob(target);
-                        // REPLACE with your actual Arolinks API Key
-                        const arolinkApiKey = "PASTE_YOUR_AROLINKS_API_KEY_HERE"; 
-                        window.location.replace(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalLink}`);
+                        
+                        // If the Bot passed the API key correctly, use it.
+                        if (arolinkApiKey) {
+                            window.location.replace(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalLink}`);
+                        } else {
+                            // Fallback if API key is missing
+                            window.location.replace(finalLink);
+                        }
                     });
-                } else { alert("Verification failed!"); loadCaptcha(); }
+                } else { 
+                    alert("Verification failed!"); 
+                    loadCaptcha(); 
+                }
             };
             box.appendChild(btn);
         });
