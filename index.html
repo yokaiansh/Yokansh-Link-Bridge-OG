@@ -3,183 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Tunnel | Identity Verification</title>
+    <title>Secure Gateway</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --glass: rgba(15, 23, 42, 0.6);
-            --border: rgba(255, 255, 255, 0.08);
-            --accent: #38bdf8;
-            --success: #4ade80;
+        :root { --glass: rgba(15, 23, 42, 0.8); --border: rgba(255, 255, 255, 0.1); --accent: #38bdf8; }
+        body { 
+            margin: 0; font-family: 'Inter', sans-serif; height: 100vh;
+            background: radial-gradient(circle at center, #1e293b, #020617);
+            display: flex; align-items: center; justify-content: center; color: white; overflow: hidden;
         }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000000);
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #f8fafc;
-            overflow: hidden;
-        }
-
         .glass-card {
-            background: var(--glass);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            padding: 40px;
-            width: 360px;
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            background: var(--glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--border); border-radius: 32px; padding: 40px;
+            width: 350px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.9);
         }
-
-        h3 {
-            font-weight: 500;
-            letter-spacing: -0.02em;
-            margin: 20px 0 10px;
-        }
-
-        p {
-            color: #94a3b8;
-            font-size: 0.95rem;
-            font-weight: 300;
-        }
-
         .step { display: none; }
-        .step.active { 
-            display: block; 
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        .step.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .loader {
-            width: 50px;
-            height: 50px;
-            border: 2px solid rgba(56, 189, 248, 0.1);
-            border-bottom-color: var(--accent);
-            border-radius: 50%;
-            display: inline-block;
-            animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            width: 50px; height: 50px; border: 3px solid rgba(56, 189, 248, 0.1);
+            border-bottom-color: var(--accent); border-radius: 50%;
+            display: inline-block; animation: spin 1s linear infinite; margin-bottom: 25px;
         }
-
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        .captcha-box { 
-            display: flex; 
-            gap: 15px; 
-            justify-content: center; 
-            margin-top: 25px; 
-        }
-
-        .color-btn { 
-            width: 45px; 
-            height: 45px; 
-            border-radius: 14px; 
-            cursor: pointer; 
-            border: 2px solid transparent; 
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-        }
-
-        .color-btn:hover { 
-            transform: translateY(-3px) scale(1.05);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        #targetColor {
-            padding: 2px 8px;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.05);
-        }
+        .captcha-box { display: flex; gap: 15px; justify-content: center; margin-top: 30px; }
+        .color-btn { width: 48px; height: 48px; border-radius: 14px; cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
+        .color-btn:hover { transform: scale(1.15); border-color: white; }
+        p { color: #94a3b8; font-size: 0.95rem; }
+        #targetColor { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-<div class="glass-card">
+<div class="glass-card" id="gate">
     <div id="step1" class="step active">
         <div class="loader"></div>
-        <h3>System Scan</h3>
-        <p id="timer1">Initializing security layers in 5s...</p>
+        <h3>Security Check</h3>
+        <p id="t1">Scanning for bypassers... 5s</p>
     </div>
 
     <div id="step2" class="step">
         <h3>Human Verification</h3>
-        <p>Tap the <span id="targetColor">Yellow</span> block to verify</p>
+        <p>Select the <span id="targetColor">Color</span> block</p>
         <div class="captcha-box" id="colors"></div>
     </div>
 
     <div id="step3" class="step">
-        <div class="loader" style="border-bottom-color: var(--success);"></div>
-        <h3>Tunnel Secured</h3>
-        <p id="timer2">Finalizing redirection in 5s...</p>
+        <div class="loader" style="border-bottom-color: #4ade80;"></div>
+        <h3>Authorized</h3>
+        <p id="t2">Generating final link... 5s</p>
     </div>
 </div>
 
 <script>
     const params = new URLSearchParams(window.location.search);
     const target = params.get('target');
-    const colorData = [
-        {name: 'Red', hex: '#ef4444'}, 
-        {name: 'Blue', hex: '#3b82f6'},
-        {name: 'Yellow', hex: '#eab308'}, 
-        {name: 'Green', hex: '#22c55e'}
+    const ts = params.get('ts');
+    const signature = params.get('s');
+    const SECRET_KEY = "PRO_GLASS_BRIDGE_2026"; 
+
+    const colors = [
+        {n: 'Red', h: '#ef4444'}, {n: 'Blue', h: '#3b82f6'},
+        {n: 'Yellow', h: '#eab308'}, {n: 'Green', h: '#22c55e'}
     ];
 
-    function startTimer(id, duration, callback) {
-        let time = duration;
+    // --- ANTI-BYPASS ---
+    const now = Math.floor(Date.now() / 1000);
+    if (!target || !ts || (now - parseInt(ts)) > 600) {
+        document.getElementById('gate').innerHTML = "<h3>Expired</h3><p>Please get a new link from the bot.</p>";
+        throw new Error("Blocked");
+    }
+
+    function startTimer(id, sec, callback) {
+        let count = sec;
         const el = document.getElementById(id);
         const interval = setInterval(() => {
-            time--;
-            el.innerText = `Proceeding in ${time}s...`;
-            if (time <= 0) {
-                clearInterval(interval);
-                callback();
-            }
+            count--;
+            el.innerText = `Proceeding in ${count}s...`;
+            if (count <= 0) { clearInterval(interval); callback(); }
         }, 1000);
     }
 
-    // Start Phase 1
-    startTimer('timer1', 5, () => {
+    // Phase 1 -> Phase 2
+    startTimer('t1', 5, () => {
         document.getElementById('step1').classList.remove('active');
         document.getElementById('step2').classList.add('active');
-        generateCaptcha();
+        loadCaptcha();
     });
 
-    function generateCaptcha() {
-        const targetObj = colorData[Math.floor(Math.random() * colorData.length)];
-        const textDisplay = document.getElementById('targetColor');
-        textDisplay.innerText = targetObj.name;
-        textDisplay.style.color = targetObj.hex;
+    function loadCaptcha() {
+        const goal = colors[Math.floor(Math.random() * colors.length)];
+        const targetText = document.getElementById('targetColor');
+        targetText.innerText = goal.n;
+        targetText.style.color = goal.h;
         
-        const container = document.getElementById('colors');
-        container.innerHTML = ''; 
-        
-        [...colorData].sort(() => Math.random() - 0.5).forEach(c => {
+        const box = document.getElementById('colors');
+        box.innerHTML = '';
+        [...colors].sort(() => Math.random() - 0.5).forEach(c => {
             const btn = document.createElement('div');
             btn.className = 'color-btn';
-            btn.style.backgroundColor = c.hex;
+            btn.style.backgroundColor = c.h;
             btn.onclick = () => {
-                if (c.name === targetObj.name) {
+                if (c.n === goal.n) {
                     document.getElementById('step2').classList.remove('active');
                     document.getElementById('step3').classList.add('active');
-                    startTimer('timer2', 5, () => { 
-                        if(target) window.location.replace(atob(target)); 
+                    startTimer('t2', 5, () => {
+                        const finalLink = atob(target);
+                        // REPLACE with your actual Arolinks API Key
+                        const arolinkApiKey = "PASTE_YOUR_AROLINKS_API_KEY_HERE"; 
+                        window.location.replace(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalLink}`);
                     });
-                } else {
-                    btn.style.transform = "shake 0.2s";
-                    generateCaptcha();
-                }
+                } else { alert("Verification failed!"); loadCaptcha(); }
             };
-            container.appendChild(btn);
+            box.appendChild(btn);
         });
     }
 </script>
