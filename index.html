@@ -56,19 +56,24 @@
 </div>
 
 <script>
+    // 1. CAPTURE PARAMETERS
     const params = new URLSearchParams(window.location.search);
     const target = params.get('target');
     const ts = params.get('ts');
     const signature = params.get('s');
-    // 'ak' is your Arolinks API Key passed from the Bot
     const arolinkApiKey = params.get('ak'); 
+
+    // 2. PRIVACY CLEANUP: Wipe API Key from URL bar immediately
+    if (window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
     const colors = [
         {n: 'Red', h: '#ef4444'}, {n: 'Blue', h: '#3b82f6'},
         {n: 'Yellow', h: '#eab308'}, {n: 'Green', h: '#22c55e'}
     ];
 
-    // --- ANTI-BYPASS ---
+    // 3. ANTI-BYPASS VALIDATION
     const now = Math.floor(Date.now() / 1000);
     if (!target || !ts || (now - parseInt(ts)) > 600) {
         document.getElementById('gate').innerHTML = "<h3>Expired</h3><p>Please get a new link from the bot.</p>";
@@ -107,15 +112,26 @@
                 if (c.n === goal.n) {
                     document.getElementById('step2').classList.remove('active');
                     document.getElementById('step3').classList.add('active');
+                    
                     startTimer('t2', 5, () => {
-                        const finalLink = atob(target);
+                        const finalDestination = atob(target);
                         
-                        // If the Bot passed the API key correctly, use it.
                         if (arolinkApiKey) {
-                            window.location.replace(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalLink}`);
+                            // 4. SECURE REDIRECT: Use fetch to handle JSON and redirect
+                            fetch(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalDestination}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.status === "success" && data.shortenedUrl) {
+                                        window.location.href = data.shortenedUrl;
+                                    } else {
+                                        window.location.href = finalDestination;
+                                    }
+                                })
+                                .catch(() => {
+                                    window.location.href = finalDestination;
+                                });
                         } else {
-                            // Fallback if API key is missing
-                            window.location.replace(finalLink);
+                            window.location.href = finalDestination;
                         }
                     });
                 } else { 
