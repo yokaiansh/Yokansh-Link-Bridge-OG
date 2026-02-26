@@ -6,13 +6,14 @@ import telebot
 from flask import Flask, request
 
 app = Flask(__name__)
-# ... rest of your code ...
-bot = telebot.TeleBot(os.getenv("BOT_TOKEN"), threaded=False)
 
-@app.after_request
-def add_header(r):
-    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    return r
+# Load variables safely
+TOKEN = os.getenv("BOT_TOKEN")
+AROLINK_KEY = os.getenv("AROLINK_API")
+# Use a fallback if VERCEL_URL is missing
+DOMAIN = os.getenv("VERCEL_URL", "yokansh-link-bridge-og.vercel.app").replace("https://", "").replace("http://", "").strip("/")
+
+bot = telebot.TeleBot(TOKEN, threaded=False)
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -27,23 +28,23 @@ def webhook():
 def handle(m):
     link = m.text.strip()
     if "t.me" in link:
-        enc = base64.b64encode(link.encode()).decode()
-        v_token = int(time.time())
-        # Clean the domain to prevent 404s
-        domain = os.getenv("VERCEL_URL").replace("https://", "").replace("/", "").strip()
-        bridge_url = f"https://{domain}/?target={enc}&v={v_token}"
-        
-        api_key = os.getenv("AROLINK_API")
-        api_url = f"https://arolinks.com/api?api={api_key}&url={bridge_url}"
-        
         try:
+            # The line that was likely crashing (missing base64/time)
+            enc = base64.b64encode(link.encode()).decode()
+            v_token = int(time.time())
+            
+            bridge_url = f"https://{DOMAIN}/?target={enc}&v={v_token}"
+            api_url = f"https://arolinks.com/api?api={AROLINK_KEY}&url={bridge_url}"
+            
             res = requests.get(api_url).json()
             if res.get("status") == "success":
-                bot.reply_to(m, f"✅ Secured Link:\n{res['shortenedUrl']}")
+                bot.reply_to(m, f"✅ **Secured Link:**\n\n{res['shortenedUrl']}")
             else:
-                bot.reply_to(m, "❌ Arolink API error.")
-        except:
-            bot.reply_to(m, "❌ Connection error.")
+                bot.reply_to(m, f"❌ API Error: {res.get('message')}")
+        except Exception as e:
+            bot.reply_to(m, f"❌ System Error: {str(e)}")
+    else:
+        bot.reply_to(m, "Please send a valid t.me link.")
 
-# At the bottom of api/index.py
+# Final export for Vercel
 app = app
