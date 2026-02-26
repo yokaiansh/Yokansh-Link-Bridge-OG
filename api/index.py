@@ -1,12 +1,12 @@
-import base64
-import time
 import os
+import time
+import base64
 import requests
 import telebot
 from flask import Flask, request
 
-# Initialize Flask and Bot
 app = Flask(__name__)
+# ... rest of your code ...
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"), threaded=False)
 
 @app.after_request
