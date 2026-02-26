@@ -1,7 +1,7 @@
 import os
 import time
+import hashlib
 import base64
-import requests
 import telebot
 from flask import Flask, request
 
@@ -9,9 +9,9 @@ app = Flask(__name__)
 
 # --- CONFIGURATION ---
 TOKEN = os.getenv("BOT_TOKEN")
-AROLINK_KEY = os.getenv("AROLINK_API")
-# Replace with your actual Vercel domain if the env variable isn't set
-DOMAIN = os.getenv("VERCEL_URL", "yokansh-link-bridge-og.vercel.app").replace("https://", "").replace("http://", "").strip("/")
+# This must match the Secret Key in your HTML file below
+SECRET_KEY = "PRO_GLASS_BRIDGE_2026" 
+DOMAIN = os.getenv("VERCEL_URL", "your-project.vercel.app").replace("https://", "").replace("http://", "").strip("/")
 
 bot = telebot.TeleBot(TOKEN, threaded=False)
 
@@ -29,33 +29,26 @@ def handle(m):
     link = m.text.strip()
     if "t.me" in link:
         try:
-            # STEP 1: Create the Vercel Bridge URL
-            # We encode the target link so it's safe in the URL
+            # 1. Create a Timestamp (Link valid for 10 mins)
+            ts = str(int(time.time()))
+            
+            # 2. Generate Security Signature to prevent bypassing
+            raw_sig = f"{link}{ts}{SECRET_KEY}"
+            sig = hashlib.md5(raw_sig.encode()).hexdigest()
+            
+            # 3. Base64 encode the TG link
             enc_target = base64.b64encode(link.encode()).decode()
-            bridge_url = f"https://{DOMAIN}/?target={enc_target}"
             
-            # STEP 2: Shorten the Bridge URL via Arolinks
-            # This ensures Arolinks is the 'entry point' for the user
-            api_url = f"https://arolinks.com/api?api={AROLINK_KEY}&url={bridge_url}"
+            # 4. Generate the Bridge URL
+            bridge_url = f"https://{DOMAIN}/?target={enc_target}&ts={ts}&s={sig}"
             
-            response = requests.get(api_url).json()
-            
-            if response.get("status") == "success":
-                short_url = response.get("shortenedUrl")
-                msg = (
-                    "🛡️ **Security Gateway Active**\n\n"
-                    "Your link has been processed through our secure tunnel. "
-                    "Click below to begin verification:\n\n"
-                    f"🔗 {short_url}"
-                )
-                bot.reply_to(m, msg, parse_mode="Markdown")
-            else:
-                bot.reply_to(m, "❌ API Error: Could not generate short link.")
-                
+            msg = (
+                "🛡️ **Link Secured**\n\n"
+                "Your destination is ready. Click below to start the 2-step verification:\n\n"
+                f"🔗 {bridge_url}"
+            )
+            bot.reply_to(m, msg, parse_mode="Markdown")
         except Exception as e:
-            bot.reply_to(m, f"❌ System Error: {str(e)}")
-    else:
-        bot.reply_to(m, "👋 Send me a Telegram (t.me) link to secure it!")
+            bot.reply_to(m, "❌ System busy. Please try again.")
 
-# Vercel Entry Point
 app = app
