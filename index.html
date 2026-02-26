@@ -3,94 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Check</title>
+    <title>Secure Link Gateway</title>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #1e293b; padding: 30px; border-radius: 15px; text-align: center; border: 1px solid #334155; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .step { display: none; }
-        .active { display: block; }
-        .color-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-        .color-btn { height: 50px; border-radius: 8px; border: none; cursor: pointer; transition: transform 0.2s; }
-        .color-btn:hover { transform: scale(1.05); }
-        #timer-text, #final-timer-text { font-size: 24px; font-weight: bold; color: #3b82f6; }
-        .btn-proceed { background: #22c55e; color: white; padding: 12px; border-radius: 8px; border: none; width: 100%; font-weight: bold; cursor: pointer; margin-top: 20px; }
-        .btn-proceed:disabled { background: #334155; cursor: not-allowed; }
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-color: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h1 { font-weight: 300; font-size: 1.5rem; margin-bottom: 10px; }
+        p { opacity: 0.8; font-size: 0.9rem; line-height: 1.6; }
+
+        .status-tag {
+            background: rgba(0, 255, 127, 0.2);
+            color: #00ff7f;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div id="step1" class="step active">
-            <h3>Verifying User...</h3>
-            <p>Stage 1 of 3</p>
-            <div id="timer-text">5</div>
-            <p>Checking browser security...</p>
-        </div>
 
-        <div id="step2" class="step">
-            <h3>Human Verification</h3>
-            <p>Please pick the color: <b id="target-color" style="text-transform: uppercase;"></b></p>
-            <div class="color-btns">
-                <button class="color-btn" style="background: red;" onclick="checkColor('red')"></button>
-                <button class="color-btn" style="background: blue;" onclick="checkColor('blue')"></button>
-                <button class="color-btn" style="background: green;" onclick="checkColor('green')"></button>
-                <button class="color-btn" style="background: yellow;" onclick="checkColor('yellow')"></button>
-            </div>
-        </div>
-
-        <div id="step3" class="step">
-            <h3>Generating Link...</h3>
-            <p>Final Stage</p>
-            <div id="final-timer-text">5</div>
-            <button id="final-btn" class="btn-proceed" disabled>Please Wait...</button>
-        </div>
+    <div class="glass-card">
+        <div class="status-tag">Encryption Active</div>
+        <div class="loader"></div>
+        <h1>Securing Connection</h1>
+        <p>Please wait while we verify the destination and establish a secure tunnel.</p>
+        <div id="countdown" style="margin-top: 20px; font-weight: bold; font-size: 1.2rem;"></div>
     </div>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const target = params.get('target');
-        const colors = ['red', 'blue', 'green', 'yellow'];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        document.getElementById('target-color').innerText = randomColor;
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetBase64 = urlParams.get('target');
 
-        // Step 1 Timer
-        let s1 = 5;
-        const t1 = setInterval(() => {
-            s1--;
-            document.getElementById('timer-text').innerText = s1;
-            if (s1 <= 0) {
-                clearInterval(t1);
-                showStep(2);
-            }
-        }, 1000);
-
-        function showStep(n) {
-            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-            document.getElementById('step' + n).classList.add('active');
-        }
-
-        function checkColor(choice) {
-            if (choice === randomColor) {
-                showStep(3);
-                startFinalTimer();
-            } else {
-                alert("Wrong color! Try again.");
-                location.reload();
-            }
-        }
-
-        function startFinalTimer() {
-            let s3 = 5;
-            const t3 = setInterval(() => {
-                s3--;
-                document.getElementById('final-timer-text').innerText = s3;
-                if (s3 <= 0) {
-                    clearInterval(t3);
-                    const btn = document.getElementById('final-btn');
-                    btn.disabled = false;
-                    btn.innerText = "Proceed to Content";
-                    btn.onclick = () => window.location.href = atob(target);
+        if (targetBase64) {
+            let timeLeft = 5;
+            const display = document.getElementById('countdown');
+            
+            const timer = setInterval(() => {
+                display.innerText = `Redirecting in ${timeLeft}s...`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    try {
+                        window.location.href = atob(targetBase64);
+                    } catch (e) {
+                        document.body.innerHTML = "<h1>Invalid Link</h1>";
+                    }
                 }
+                timeLeft -= 1;
             }, 1000);
+        } else {
+            document.querySelector('.glass-card').innerHTML = "<h1>Access Denied</h1><p>No destination specified.</p>";
         }
     </script>
 </body>
