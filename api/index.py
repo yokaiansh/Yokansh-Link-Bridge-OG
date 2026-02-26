@@ -47,6 +47,3 @@ def handle(m):
 
 # At the bottom of api/index.py
 app = app
-
-def handler(request):
-    return app(request)
