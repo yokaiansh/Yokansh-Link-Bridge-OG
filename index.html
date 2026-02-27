@@ -39,7 +39,6 @@
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.4); }
 
-        /* Captcha Styles */
         .captcha-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; width: 100%; }
         .color-box { height: 70px; border-radius: 15px; cursor: pointer; transition: 0.2s; border: 2px solid rgba(255,255,255,0.1); }
         .color-box:hover { transform: scale(1.05); border-color: white; }
@@ -73,7 +72,7 @@
         <div class="progress-container">
             <div class="progress-fill" id="fill"></div>
         </div>
-        <button class="btn" id="btn3" style="display:none;" onclick="finish()">Start</button>
+        <button class="btn" id="btn3" style="display:none;" onclick="finish()">Go to Link</button>
     </div>
 </div>
 
@@ -84,19 +83,15 @@
     const arolinkApiKey = params.get('ak');
     const ua = navigator.userAgent || navigator.vendor || window.opera;
 
-    // --- 10 DAY EXPIRATION ---
+    // --- 10 DAY EXPIRATION (864,000s) ---
     const now = Math.floor(Date.now() / 1000);
     if (!target || !ts || (now - parseInt(ts)) > 864000) {
         document.getElementById('main-content').innerHTML = `
             <span class="icon">🚫</span>
             <h2 style="color:#f87171">Link Expired</h2>
-            <p style="color:#94a3b8">This link is no longer valid. Please get a fresh one from the bot.</p>
+            <p style="color:#94a3b8">This secure bridge has reached its 10-day limit. Please return to the bot for a new link.</p>
         `;
     } else {
-        // Android Telegram Escape
-        if (/Telegram/i.test(ua) && /Android/i.test(ua)) {
-            window.location.href = "intent://" + window.location.href.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end";
-        }
         if (window.history.replaceState) window.history.replaceState({}, "", window.location.pathname);
 
         function runTimer(id, btnId) {
@@ -113,27 +108,19 @@
             }, 1000);
         }
 
-        // Initialize first timer
         runTimer('t1', 'btn1');
 
         function showCaptcha() {
             document.getElementById('step1').classList.remove('active');
             document.getElementById('step-captcha').classList.add('active');
-            
             const colors = [
-                { name: 'Red', hex: '#ff4d4d' },
-                { name: 'Blue', hex: '#3399ff' },
-                { name: 'Green', hex: '#2eb82e' },
-                { name: 'Yellow', hex: '#ffdb4d' }
+                { name: 'Red', hex: '#ff4d4d' }, { name: 'Blue', hex: '#3399ff' },
+                { name: 'Green', hex: '#2eb82e' }, { name: 'Yellow', hex: '#ffdb4d' }
             ];
-            
             const targetColor = colors[Math.floor(Math.random() * colors.length)];
             document.getElementById('target-color-name').innerText = targetColor.name;
-            
             const grid = document.getElementById('captcha-grid');
             grid.innerHTML = '';
-            
-            // Shuffle and create boxes
             colors.sort(() => Math.random() - 0.5).forEach(color => {
                 const box = document.createElement('div');
                 box.className = 'color-box';
@@ -144,7 +131,7 @@
                         document.getElementById('step2').classList.add('active');
                         runTimer('t2', 'btn2');
                     } else {
-                        alert("Verification failed. Please try again.");
+                        alert("Wrong color! Try again.");
                         showCaptcha();
                     }
                 };
@@ -161,16 +148,28 @@
 
         function finish() {
             const btn = document.getElementById('btn3');
-            btn.innerText = "Processing...";
+            btn.innerText = "Redirecting...";
             btn.disabled = true;
             const finalDest = atob(target);
+
+            const openExternally = (url) => {
+                if (/Android/i.test(ua)) {
+                    // Forces Chrome on Android to handle Arolinks/Telegram properly
+                    window.location.href = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end";
+                } else {
+                    window.location.href = url;
+                }
+            };
+
             if (arolinkApiKey) {
                 fetch(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalDest}`)
                     .then(r => r.json())
-                    .then(data => { window.location.href = (data.status === "success") ? data.shortenedUrl : finalDest; })
-                    .catch(() => window.location.href = finalDest);
+                    .then(data => {
+                        const link = (data.status === "success") ? data.shortenedUrl : finalDest;
+                        openExternally(link);
+                    }).catch(() => openExternally(finalDest));
             } else {
-                window.location.href = finalDest;
+                openExternally(finalDest);
             }
         }
     }
