@@ -36,6 +36,7 @@
             background: var(--accent); color: #000; border: none;
             padding: 12px 35px; border-radius: 12px; font-weight: 600;
             cursor: pointer; transition: 0.3s; font-size: 1rem;
+            text-decoration: none; display: inline-block;
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.4); }
 
@@ -45,7 +46,7 @@
 </head>
 <body>
 
-<div class="glass-card">
+<div id="main-content" class="glass-card">
     <div id="step1" class="step active">
         <span class="clock-icon">⏳</span>
         <p class="timer-text" id="t1">Checking security... 5s</p>
@@ -68,73 +69,83 @@
 </div>
 
 <script>
-    // --- 1. TELEGRAM BROWSER ESCAPE LOGIC ---
-    const ua = navigator.userAgent || navigator.vendor || window.opera;
-    const isTelegram = /Telegram/i.test(ua);
-    const isAndroid = /Android/i.test(ua);
-
-    if (isTelegram && isAndroid) {
-        // Force Android users out of Telegram browser into Chrome
-        const currentUrl = window.location.href;
-        window.location.href = "intent://" + currentUrl.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end";
-    }
-
     const params = new URLSearchParams(window.location.search);
     const target = params.get('target');
     const ts = params.get('ts');
     const arolinkApiKey = params.get('ak');
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
 
-    // Security Cleanup: Wipes URL params from address bar
-    if (window.history.replaceState) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
+    // --- 1. EXPIRATION LOGIC (10 DAYS) ---
+    const now = Math.floor(Date.now() / 1000);
+    const tenDaysInSeconds = 864000; 
 
-    function runTimer(id, btnId) {
-        let sec = 5;
-        const text = document.getElementById(id);
-        const timer = setInterval(() => {
-            sec--;
-            text.innerText = `Please wait... ${sec}s`;
-            if (sec <= 0) {
-                clearInterval(timer);
-                text.style.display = 'none';
-                document.getElementById(btnId).style.display = 'inline-block';
+    if (!target || !ts || (now - parseInt(ts)) > tenDaysInSeconds) {
+        document.getElementById('main-content').innerHTML = `
+            <span class="clock-icon">🚫</span>
+            <h2 style="color:#f87171">Link Expired</h2>
+            <p style="color:#94a3b8">For security, this link is only valid for 10 days. Please return to the bot for a fresh one.</p>
+        `;
+    } else {
+        // --- 2. TELEGRAM ESCAPE LOGIC ---
+        const isTelegram = /Telegram/i.test(ua);
+        const isAndroid = /Android/i.test(ua);
+
+        if (isTelegram && isAndroid) {
+            const currentUrl = window.location.href;
+            window.location.href = "intent://" + currentUrl.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end";
+        }
+
+        // Security Cleanup: Wipes URL params from address bar
+        if (window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        function runTimer(id, btnId) {
+            let sec = 5;
+            const text = document.getElementById(id);
+            const timer = setInterval(() => {
+                sec--;
+                text.innerText = `Please wait... ${sec}s`;
+                if (sec <= 0) {
+                    clearInterval(timer);
+                    text.style.display = 'none';
+                    document.getElementById(btnId).style.display = 'inline-block';
+                }
+            }, 1000);
+        }
+
+        runTimer('t1', 'btn1');
+
+        function nextStep(current, next) {
+            document.getElementById(`step${current}`).classList.remove('active');
+            document.getElementById(`step${next}`).classList.add('active');
+            if (next === 2) runTimer('t2', 'btn2');
+        }
+
+        function startLoading() {
+            nextStep(2, 3);
+            const fill = document.getElementById('fill');
+            setTimeout(() => { fill.style.width = '100%'; }, 100);
+            setTimeout(() => {
+                document.getElementById('btn3').style.display = 'inline-block';
+            }, 5100);
+        }
+
+        function finish() {
+            const btn = document.getElementById('btn3');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+
+            const finalDest = atob(target);
+            if (arolinkApiKey) {
+                fetch(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalDest}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        window.location.href = (data.status === "success") ? data.shortenedUrl : finalDest;
+                    }).catch(() => window.location.href = finalDest);
+            } else {
+                window.location.href = finalDest;
             }
-        }, 1000);
-    }
-
-    runTimer('t1', 'btn1');
-
-    function nextStep(current, next) {
-        document.getElementById(`step${current}`).classList.remove('active');
-        document.getElementById(`step${next}`).classList.add('active');
-        if (next === 2) runTimer('t2', 'btn2');
-    }
-
-    function startLoading() {
-        nextStep(2, 3);
-        const fill = document.getElementById('fill');
-        setTimeout(() => { fill.style.width = '100%'; }, 100);
-        setTimeout(() => {
-            document.getElementById('btn3').style.display = 'inline-block';
-        }, 5100);
-    }
-
-    function finish() {
-        const btn = document.getElementById('btn3');
-        btn.innerText = "Processing...";
-        btn.disabled = true;
-
-        const finalDest = atob(target);
-        if (arolinkApiKey) {
-            fetch(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalDest}`)
-                .then(r => r.json())
-                .then(data => {
-                    // Redirect to Arolinks in the external browser
-                    window.location.href = (data.status === "success") ? data.shortenedUrl : finalDest;
-                }).catch(() => window.location.href = finalDest);
-        } else {
-            window.location.href = finalDest;
         }
     }
 </script>
