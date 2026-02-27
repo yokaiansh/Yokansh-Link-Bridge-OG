@@ -29,16 +29,20 @@
         .step.active { display: flex; animation: slideUp 0.4s ease-out; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .clock-icon { font-size: 3rem; margin-bottom: 15px; display: block; }
+        .icon { font-size: 3.5rem; margin-bottom: 15px; display: block; }
         .timer-text { font-size: 1.1rem; color: #94a3b8; margin-bottom: 20px; }
 
         .btn {
             background: var(--accent); color: #000; border: none;
             padding: 12px 35px; border-radius: 12px; font-weight: 600;
             cursor: pointer; transition: 0.3s; font-size: 1rem;
-            text-decoration: none; display: inline-block;
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.4); }
+
+        /* Captcha Styles */
+        .captcha-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; width: 100%; }
+        .color-box { height: 70px; border-radius: 15px; cursor: pointer; transition: 0.2s; border: 2px solid rgba(255,255,255,0.1); }
+        .color-box:hover { transform: scale(1.05); border-color: white; }
 
         .progress-container { width: 100%; height: 8px; background: #334155; border-radius: 10px; margin: 20px 0; overflow: hidden; }
         .progress-fill { width: 0%; height: 100%; background: var(--accent); transition: width 5s linear; }
@@ -48,14 +52,19 @@
 
 <div id="main-content" class="glass-card">
     <div id="step1" class="step active">
-        <span class="clock-icon">⏳</span>
+        <span class="icon">⏳</span>
         <p class="timer-text" id="t1">Checking security... 5s</p>
-        <button class="btn" id="btn1" style="display:none;" onclick="nextStep(1, 2)">Continue</button>
+        <button class="btn" id="btn1" style="display:none;" onclick="showCaptcha()">Continue</button>
+    </div>
+
+    <div id="step-captcha" class="step">
+        <p class="timer-text">Select the <b id="target-color-name" style="color:var(--accent)">...</b> box</p>
+        <div class="captcha-grid" id="captcha-grid"></div>
     </div>
 
     <div id="step2" class="step">
-        <span class="clock-icon">🛡️</span>
-        <p class="timer-text" id="t2">Verifying handshake... 5s</p>
+        <span class="icon">🛡️</span>
+        <p class="timer-text" id="t2">Checking security... 5s</p>
         <button class="btn" id="btn2" style="display:none;" onclick="startLoading()">Proceed</button>
     </div>
 
@@ -75,37 +84,27 @@
     const arolinkApiKey = params.get('ak');
     const ua = navigator.userAgent || navigator.vendor || window.opera;
 
-    // --- 1. EXPIRATION LOGIC (10 DAYS) ---
+    // --- 10 DAY EXPIRATION ---
     const now = Math.floor(Date.now() / 1000);
-    const tenDaysInSeconds = 864000; 
-
-    if (!target || !ts || (now - parseInt(ts)) > tenDaysInSeconds) {
+    if (!target || !ts || (now - parseInt(ts)) > 864000) {
         document.getElementById('main-content').innerHTML = `
-            <span class="clock-icon">🚫</span>
+            <span class="icon">🚫</span>
             <h2 style="color:#f87171">Link Expired</h2>
-            <p style="color:#94a3b8">For security, this link is only valid for 10 days. Please return to the bot for a fresh one.</p>
+            <p style="color:#94a3b8">This link is no longer valid. Please get a fresh one from the bot.</p>
         `;
     } else {
-        // --- 2. TELEGRAM ESCAPE LOGIC ---
-        const isTelegram = /Telegram/i.test(ua);
-        const isAndroid = /Android/i.test(ua);
-
-        if (isTelegram && isAndroid) {
-            const currentUrl = window.location.href;
-            window.location.href = "intent://" + currentUrl.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end";
+        // Android Telegram Escape
+        if (/Telegram/i.test(ua) && /Android/i.test(ua)) {
+            window.location.href = "intent://" + window.location.href.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end";
         }
-
-        // Security Cleanup: Wipes URL params from address bar
-        if (window.history.replaceState) {
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
+        if (window.history.replaceState) window.history.replaceState({}, "", window.location.pathname);
 
         function runTimer(id, btnId) {
             let sec = 5;
             const text = document.getElementById(id);
             const timer = setInterval(() => {
                 sec--;
-                text.innerText = `Please wait... ${sec}s`;
+                text.innerText = `Checking security... ${sec}s`;
                 if (sec <= 0) {
                     clearInterval(timer);
                     text.style.display = 'none';
@@ -114,35 +113,62 @@
             }, 1000);
         }
 
+        // Initialize first timer
         runTimer('t1', 'btn1');
 
-        function nextStep(current, next) {
-            document.getElementById(`step${current}`).classList.remove('active');
-            document.getElementById(`step${next}`).classList.add('active');
-            if (next === 2) runTimer('t2', 'btn2');
+        function showCaptcha() {
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step-captcha').classList.add('active');
+            
+            const colors = [
+                { name: 'Red', hex: '#ff4d4d' },
+                { name: 'Blue', hex: '#3399ff' },
+                { name: 'Green', hex: '#2eb82e' },
+                { name: 'Yellow', hex: '#ffdb4d' }
+            ];
+            
+            const targetColor = colors[Math.floor(Math.random() * colors.length)];
+            document.getElementById('target-color-name').innerText = targetColor.name;
+            
+            const grid = document.getElementById('captcha-grid');
+            grid.innerHTML = '';
+            
+            // Shuffle and create boxes
+            colors.sort(() => Math.random() - 0.5).forEach(color => {
+                const box = document.createElement('div');
+                box.className = 'color-box';
+                box.style.backgroundColor = color.hex;
+                box.onclick = () => {
+                    if (color.name === targetColor.name) {
+                        document.getElementById('step-captcha').classList.remove('active');
+                        document.getElementById('step2').classList.add('active');
+                        runTimer('t2', 'btn2');
+                    } else {
+                        alert("Verification failed. Please try again.");
+                        showCaptcha();
+                    }
+                };
+                grid.appendChild(box);
+            });
         }
 
         function startLoading() {
-            nextStep(2, 3);
-            const fill = document.getElementById('fill');
-            setTimeout(() => { fill.style.width = '100%'; }, 100);
-            setTimeout(() => {
-                document.getElementById('btn3').style.display = 'inline-block';
-            }, 5100);
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+            setTimeout(() => { document.getElementById('fill').style.width = '100%'; }, 100);
+            setTimeout(() => { document.getElementById('btn3').style.display = 'inline-block'; }, 5100);
         }
 
         function finish() {
             const btn = document.getElementById('btn3');
             btn.innerText = "Processing...";
             btn.disabled = true;
-
             const finalDest = atob(target);
             if (arolinkApiKey) {
                 fetch(`https://arolinks.com/api?api=${arolinkApiKey}&url=${finalDest}`)
                     .then(r => r.json())
-                    .then(data => {
-                        window.location.href = (data.status === "success") ? data.shortenedUrl : finalDest;
-                    }).catch(() => window.location.href = finalDest);
+                    .then(data => { window.location.href = (data.status === "success") ? data.shortenedUrl : finalDest; })
+                    .catch(() => window.location.href = finalDest);
             } else {
                 window.location.href = finalDest;
             }
